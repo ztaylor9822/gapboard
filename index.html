@@ -514,47 +514,92 @@ function gameRow(g){
   </article>`;
 }
 
-/* share card: draws the game's posted plays to an image and opens the phone's share sheet */
+/* share card: one image per posted play, styled like a bet slip; opens the phone's share sheet */
 async function sharePlay(g){
   const plays = ledgerFor(g).filter(p => p.play);
   if (!plays.length) return;
-  try { await document.fonts.ready; } catch(e){}
-  const W = 1080, HH = plays.length > 1 ? 1350 : 1080, c = document.createElement("canvas"); c.width = W; c.height = HH;
+  try { await Promise.all([document.fonts.load("800 100px 'Big Shoulders Display'"), document.fonts.load("600 30px 'IBM Plex Sans'"), document.fonts.load("500 30px 'IBM Plex Mono'")]); } catch(e){}
+  const files = [];
+  for (const p of plays) files.push(await drawPlayCard(g, p));
+  if (navigator.canShare && navigator.canShare({files})) { try { await navigator.share({files, title: "Gap Board play"}); return; } catch(e){ if (e.name === "AbortError") return; } }
+  for (const f of files) { const a = document.createElement("a"); a.href = URL.createObjectURL(f); a.download = f.name; document.body.appendChild(a); a.click(); a.remove(); }
+}
+async function drawPlayCard(g, p){
+  const W = 1080, HH = 1350, c = document.createElement("canvas"); c.width = W; c.height = HH;
   const x = c.getContext("2d");
-  const BG = "#11161c", INK = "#e4e9ee", MUTED = "#9aa7b4", PLAY = "#4ade80", ACC = "#fb8a4c";
+  const BG = "#0c1015", PANEL = "#151b23", LINE = "#26303b", INK = "#eef2f6", MUTED = "#8b97a5", FAINT = "#56626f", GREEN = "#4ade80", ORANGE = "#fb8a4c";
+  const DISP = "'Big Shoulders Display', 'Arial Narrow', Impact, sans-serif", BODY = "'IBM Plex Sans', system-ui, sans-serif", MONO = "'IBM Plex Mono', ui-monospace, monospace";
+  const rr = (X, Y, w, h, r) => { x.beginPath(); x.moveTo(X + r, Y); x.arcTo(X + w, Y, X + w, Y + h, r); x.arcTo(X + w, Y + h, X, Y + h, r); x.arcTo(X, Y + h, X, Y, r); x.arcTo(X, Y, X + w, Y, r); x.closePath(); };
+  const txt = (t, X, Y, font, color, align = "left") => { x.font = font; x.fillStyle = color; x.textAlign = align; x.fillText(t, X, Y); x.textAlign = "left"; };
+  const fit = (t, maxw, size, weight, fam) => { let s = size; x.font = `${weight} ${s}px ${fam}`; while (x.measureText(t).width > maxw && s > 20) { s -= 4; x.font = `${weight} ${s}px ${fam}`; } return `${weight} ${s}px ${fam}`; };
+  // background: deep ink, a soft green glow, faint diagonal hatching
   x.fillStyle = BG; x.fillRect(0, 0, W, HH);
-  x.fillStyle = INK; x.font = "900 64px 'Big Shoulders Display', Impact, sans-serif"; x.fillText("GAP", 72, 120);
-  const gw = x.measureText("GAP").width; x.fillStyle = ACC; x.fillText("/", 72 + gw, 120);
-  x.fillStyle = INK; x.fillText("BOARD", 72 + gw + x.measureText("/").width, 120);
-  x.fillStyle = MUTED; x.font = "500 30px 'IBM Plex Sans', sans-serif";
-  const ko = g.tbd ? new Date(g.kickoff).toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric",timeZone:"America/New_York"}) + " · time TBA"
-    : new Date(g.kickoff).toLocaleString(undefined,{weekday:"long",month:"short",day:"numeric",hour:"numeric",minute:"2-digit",timeZoneName:"short",timeZone:tz});
-  x.fillText(`${g.away} at ${g.home}`, 72, 210); x.fillText(ko, 72, 254);
-  let y = 330;
-  const wrap = (text, font, maxw, lh, color) => { x.font = font; x.fillStyle = color; const words = String(text).split(" "); let line = "";
-    for (const w of words) { const t = line ? line + " " + w : w; if (x.measureText(t).width > maxw && line) { x.fillText(line, 72, y); y += lh; line = w; } else line = t; }
-    if (line) { x.fillText(line, 72, y); y += lh; } };
-  for (const p of plays) {
-    x.fillStyle = PLAY; x.fillRect(48, y - 8, 8, 52);
-    x.fillStyle = PLAY; x.font = "700 30px 'IBM Plex Sans', sans-serif"; x.fillText(`PLAY · ${p.market.toUpperCase()} · ${p.units}u`, 72, y + 30); y += 110;
-    wrap(p.pick + (p.market === "Moneyline" ? " ML" : ""), "800 84px 'Big Shoulders Display', Impact, sans-serif", W - 144, 92, INK);
-    y += 10;
-    let why = "";
-    if (p.market === "Moneyline" && g.ml) why = `Model win chance ${(g.ml.p*100).toFixed(1)}% vs market ${(g.ml.mkt_p*100).toFixed(1)}% · expected return +${(g.ml.ev*100).toFixed(1)}%`;
-    else if (p.market === "Spread" && g.pick) why = `Model line ${fullLine(g.model_margin, g)} vs Vegas ${fullLine(g.line, g)} · ${(g.pick.p*100).toFixed(1)}% to cover`;
-    else if (p.market === "Total" && g.ou) why = `Model total ${n1(g.model_total)} vs ${g.total_line} · ${(g.ou.p*100).toFixed(1)}% to hit`;
-    if (why) wrap(why, "500 34px 'IBM Plex Sans', sans-serif", W - 144, 46, MUTED);
-    const r = ["W","L","P"].includes(p.result) ? {W:"WON",L:"LOST",P:"PUSH"}[p.result] : "";
-    if (r) { x.fillStyle = p.result === "W" ? PLAY : p.result === "L" ? ACC : MUTED; x.font = "800 44px 'IBM Plex Sans', sans-serif"; const fs = p.final ? String(p.final).split("-") : null; x.fillText(r + (fs ? ` · ${A(g)} ${fs[0]}, ${H(g)} ${fs[1]}` : ""), 72, y + 20); y += 70; }
-    y += 50;
+  const glow = x.createRadialGradient(W - 120, 160, 10, W - 120, 160, 760); glow.addColorStop(0, "rgba(74,222,128,0.20)"); glow.addColorStop(1, "rgba(74,222,128,0)");
+  x.fillStyle = glow; x.fillRect(0, 0, W, HH);
+  x.save(); x.globalAlpha = 0.05; x.strokeStyle = INK; x.lineWidth = 2;
+  for (let i = -HH; i < W; i += 28) { x.beginPath(); x.moveTo(i, HH); x.lineTo(i + HH, 0); x.stroke(); }
+  x.restore();
+  // header: wordmark + sport/date chip
+  x.font = `800 60px ${DISP}`; x.fillStyle = INK; x.fillText("GAP", 72, 118); let gx = 72 + x.measureText("GAP").width;
+  x.fillStyle = ORANGE; x.fillText("/", gx, 118); gx += x.measureText("/").width; x.fillStyle = INK; x.fillText("BOARD", gx, 118);
+  const sport = {nfl: "NFL", cfb: "COLLEGE FOOTBALL", nba: "NBA"}[state.tab] || "";
+  const day = new Date(g.kickoff).toLocaleDateString(undefined, {weekday: "short", month: "short", day: "numeric", timeZone: g.tbd ? "America/New_York" : tz}).toUpperCase();
+  const chip = `${sport} · ${day}`; x.font = `600 24px ${MONO}`; const cw = x.measureText(chip).width + 44;
+  rr(W - 72 - cw, 76, cw, 52, 26); x.strokeStyle = LINE; x.lineWidth = 2; x.stroke(); txt(chip, W - 72 - cw / 2, 111, `600 24px ${MONO}`, MUTED, "center");
+  // matchup
+  const ko = g.tbd ? "Kickoff time TBA" : new Date(g.kickoff).toLocaleTimeString(undefined, {hour: "numeric", minute: "2-digit", timeZoneName: "short", timeZone: tz});
+  x.font = `800 150px ${DISP}`; x.fillStyle = MUTED; x.fillText(A(g), 72, 330); let mx = 72 + x.measureText(A(g)).width + 28;
+  txt("@", mx, 318, `500 64px ${BODY}`, FAINT); x.font = `500 64px ${BODY}`; mx += x.measureText("@").width + 28;
+  txt(H(g), mx, 330, `800 150px ${DISP}`, INK);
+  txt(`${g.away} at ${g.home} · ${ko}`, 72, 388, fit(`${g.away} at ${g.home} · ${ko}`, W - 144, 30, 500, BODY), MUTED);
+  // the play panel
+  const PY = 450, PH = 560;
+  rr(48, PY, W - 96, PH, 36); x.fillStyle = PANEL; x.fill(); x.strokeStyle = GREEN; x.lineWidth = 3; x.stroke();
+  txt("THE PLAY", 96, PY + 72, `700 26px ${MONO}`, GREEN);
+  const stake = `${p.units} UNIT${p.units > 1 ? "S" : ""}`; x.font = `700 24px ${MONO}`; const sw = x.measureText(stake).width + 40;
+  rr(W - 96 - sw, PY + 38, sw, 48, 24); x.fillStyle = GREEN; x.fill(); txt(stake, W - 96 - sw / 2, PY + 71, `700 24px ${MONO}`, BG, "center");
+  // pick: team / side on one line, the number big in green
+  const m = String(p.pick).match(/^(.*?)\s([+\-−]?[\d.]+)$/);
+  const who = m ? m[1] : p.pick, num = m ? m[2].replace("-", "−") : "";
+  const tag = p.market === "Moneyline" ? " ML" : "";
+  const graded = ["W", "L", "P"].includes(p.result);
+  const room = graded ? W - 192 - 250 : W - 192;
+  txt(who, 96, PY + 170, fit(who, room, 84, 800, DISP), INK);
+  if (graded) {   // result stamp, top right of the play
+    const word = {W: "WON", L: "LOST", P: "PUSH"}[p.result], col = p.result === "W" ? GREEN : p.result === "L" ? ORANGE : MUTED;
+    x.save(); x.translate(W - 210, PY + 250); x.rotate(-0.16);
+    rr(-112, -52, 224, 104, 16); x.strokeStyle = col; x.lineWidth = 7; x.stroke();
+    txt(word, 0, 30, `800 80px ${DISP}`, col, "center"); x.restore();
   }
-  x.fillStyle = MUTED; x.font = "500 26px 'IBM Plex Sans', sans-serif";
-  x.fillText("Posted " + new Date(plays[0].posted).toLocaleString(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}) + " · locked", 72, HH - 110);
-  x.fillText("gapboard.pages.dev · model output, not betting advice", 72, HH - 66);
+  txt(num + tag, 96, PY + 320, fit(num + tag, room, 170, 800, DISP), GREEN);
+  // comparison bars
+  let rows, note;
+  if (p.market === "Moneyline" && g.ml) { rows = [["Model", g.ml.p, GREEN], ["Market", g.ml.mkt_p, FAINT]]; note = `Win chance · expected return +${(g.ml.ev * 100).toFixed(1)}%`; }
+  else if (p.market === "Spread" && g.pick) { rows = [["Cover", g.pick.p, GREEN], ["Break-even", 0.5238, FAINT]]; note = `Model ${fullLine(g.model_margin, g)} · Vegas ${fullLine(g.line, g)}`; }
+  else if (p.market === "Total" && g.ou) { rows = [["Hit", g.ou.p, GREEN], ["Break-even", 0.5238, FAINT]]; note = `Model total ${n1(g.model_total)} · line ${g.total_line}`; }
+  if (rows) {
+    let by = PY + 400; const bx = 96, bw = W - 192 - 150;
+    for (const [lab, v, col] of rows) {
+      txt(lab.toUpperCase(), bx, by, `600 22px ${MONO}`, MUTED);
+      rr(bx, by + 14, bw, 18, 9); x.fillStyle = "#222b35"; x.fill();
+      rr(bx, by + 14, Math.max(18, bw * v), 18, 9); x.fillStyle = col; x.fill();
+      txt(`${(v * 100).toFixed(1)}%`, W - 96, by + 34, `700 34px ${MONO}`, col === GREEN ? INK : MUTED, "right");
+      by += 66;
+    }
+    txt(note, 96, PY + PH - 20, fit(note, W - 192, 26, 500, BODY), MUTED);
+  }
+  // ticket stub: perforation, then posted time and site
+  const SY = PY + PH + 90;
+  x.fillStyle = BG; x.beginPath(); x.arc(0, SY, 30, 0, Math.PI * 2); x.arc(W, SY, 30, 0, Math.PI * 2); x.fill();
+  x.setLineDash([14, 14]); x.strokeStyle = LINE; x.lineWidth = 3; x.beginPath(); x.moveTo(48, SY); x.lineTo(W - 48, SY); x.stroke(); x.setLineDash([]);
+  const posted = new Date(p.posted).toLocaleString(undefined, {month: "short", day: "numeric", hour: "numeric", minute: "2-digit"});
+  txt("POSTED", 72, SY + 78, `600 22px ${MONO}`, FAINT); txt(`${posted} · locked`, 72, SY + 120, `600 34px ${BODY}`, INK);
+  if (graded && p.final) { const f = String(p.final).split("-"); txt("FINAL", W / 2 - 20, SY + 78, `600 22px ${MONO}`, FAINT); txt(`${A(g)} ${f[0]} · ${H(g)} ${f[1]}`, W / 2 - 20, SY + 120, `600 32px ${MONO}`, INK); }
+  else { txt("PRICE", W / 2 - 20, SY + 78, `600 22px ${MONO}`, FAINT); txt(`${p.price > 0 ? "+" : "−"}${Math.abs(p.price)}`, W / 2 - 20, SY + 120, `600 34px ${MONO}`, INK); }
+  txt("gapboard.pages.dev", 72, HH - 70, `600 28px ${MONO}`, MUTED);
+  txt("Model output, not betting advice", W - 72, HH - 70, `500 22px ${BODY}`, FAINT, "right");
   const blob = await new Promise(r => c.toBlob(r, "image/png"));
-  const file = new File([blob], `gapboard-play-${g.id}.png`, {type: "image/png"});
-  if (navigator.canShare && navigator.canShare({files: [file]})) { try { await navigator.share({files: [file], title: "Gap Board play"}); return; } catch(e){ if (e.name === "AbortError") return; } }
-  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = file.name; document.body.appendChild(a); a.click(); a.remove();
+  return new File([blob], `gapboard-${state.tab}-${g.id}-${p.market.toLowerCase()}.png`, {type: "image/png"});
 }
 function playStrip(key){
   const S = DATA[key];
