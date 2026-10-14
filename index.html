@@ -178,6 +178,7 @@ h3{font:600 15px var(--body);margin:22px 0 8px}
 .btnrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .btnrow .bd{margin-top:14px}
 .sharebtn{margin-top:14px;border:1px solid var(--play);background:none;border-radius:7px;padding:8px 12px;font:500 12px var(--mono);letter-spacing:.06em;text-transform:uppercase;cursor:pointer;color:var(--play)}
+.flag{margin-top:10px;font-size:13px;color:var(--accent);background:var(--sharp-bg);border-radius:8px;padding:7px 10px}
 .star{border:0;background:none;cursor:pointer;font-size:17px;line-height:1;color:var(--faint);padding:0 2px}
 .star.on{color:#e0a400}
 .gmeta{flex-wrap:wrap}
@@ -506,6 +507,7 @@ function gameRow(g){
       <div class="pickrow"><span class="k">Model pick</span>${pickRow(g)}</div>
       ${also.length ? `<div class="also">${also.join("")}</div>` : ""}
       ${resRow}
+      ${(g.flags || []).map(f => `<div class="flag">⚠ ${esc(f)}. Posted picks stay as posted.</div>`).join("")}
       <div class="btnrow"><button class="bd" data-toggle="${g.id}" aria-expanded="${isOpen}">Game breakdown ${isOpen?"↑":"→"}</button>${anyPlay(g) ? `<button class="sharebtn" data-share="${esc(g.id)}">Share play</button>` : ""}</div>
     </div>
     ${isOpen ? `${summary(g)}<div class="mkts">${cellSpread(g)}${cellTotal(g)}${cellML(g)}</div>${detail(g)}${extras(g)}` : ""}
@@ -564,7 +566,7 @@ function playStrip(key){
   P.sort((x, y) => new Date(ids.get(String(x.game_id)).kickoff) - new Date(ids.get(String(y.game_id)).kickoff));
   return `<div class="strip" aria-label="This week's plays"><span class="k">Plays</span>${P.map(p => { const g = ids.get(String(p.game_id));
     const r = ["W","L","P"].includes(p.result) ? `<span class="rbadge ${p.result}" style="margin:0">${p.result}</span>` : "";
-    return `<button class="pchip${r ? " res-" + p.result : ""}" data-jump="${esc(g.id)}"><b>${esc(p.pick)}${p.market === "Moneyline" ? " ML" : ""} ${r}</b><span>${p.units}u · ${esc(when(g))}</span></button>`; }).join("")}</div>`;
+    return `<button class="pchip${r ? " res-" + p.result : ""}" data-jump="${esc(g.id)}"><b>${esc(p.pick)}${p.market === "Moneyline" ? " ML" : ""} ${r}</b><span>${p.units}u · ${esc(when(g))}${g.flags && g.flags.length ? " · ⚠ QB" : ""}</span></button>`; }).join("")}</div>`;
 }
 function recStrip(key){
   const P = (DATA.picks || []).filter(p => p.sport === key);
