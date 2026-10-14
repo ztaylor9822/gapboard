@@ -9,6 +9,8 @@
 <meta property="og:type" content="website">
 <meta name="theme-color" content="#1b2530">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231b2530'/%3E%3Cpath d='M19 6 13 26' stroke='%23c2410c' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icon-192.png">
 <style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px/1.5 system-ui,-apple-system,'Segoe UI',sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>Gap Board</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -107,7 +109,7 @@ h3{font:600 15px var(--body);margin:22px 0 8px}
 .tm .rec{display:block;font:400 12px var(--mono);color:var(--faint)}
 .tm .s{font:600 20px var(--mono);font-variant-numeric:tabular-nums}
 .tm.dog .n,.tm.dog .s{color:var(--muted)}
-.lines{display:grid;grid-template-columns:repeat(2,minmax(0,max-content));gap:6px 40px;border-top:1px solid var(--rule);margin-top:14px;padding-top:12px}
+.lines{display:grid;grid-template-columns:repeat(3,minmax(0,max-content));gap:6px 40px;border-top:1px solid var(--rule);margin-top:14px;padding-top:12px}
 .lines .k,.pickrow .k{font:400 11px var(--mono);color:var(--muted);letter-spacing:.02em}
 .lines .v{font:500 15px var(--mono);margin-top:2px;white-space:nowrap}
 .lines .v.model{color:var(--ink)}
@@ -134,7 +136,7 @@ h3{font:600 15px var(--body);margin:22px 0 8px}
 .mlabel{display:block;font:600 10px var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--faint);margin-bottom:3px}
 @media (max-width:640px){
   .gc{padding:12px 14px 14px}
-  .lines{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 16px}
+  .lines{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px}
   .lines .v{white-space:normal;font-size:14px}
   .mkts{grid-template-columns:1fr;padding:12px 14px}
 }
@@ -157,6 +159,29 @@ h3{font:600 15px var(--body);margin:22px 0 8px}
 .split .b{display:flex;height:7px;border-radius:3px;overflow:hidden;margin-top:3px}
 .split .b i{display:block;height:100%}
 .small{font-size:12px;color:var(--muted);margin:8px 0 0}
+
+/* plays strip, results, countdown, favorites */
+.strip{display:flex;gap:8px;overflow-x:auto;padding:2px 0 6px;margin-top:16px;scrollbar-width:none}
+.strip::-webkit-scrollbar{display:none}
+.strip .k{flex:0 0 auto;align-self:center;font:600 11px var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-right:2px}
+.pchip{flex:0 0 auto;display:flex;flex-direction:column;gap:1px;border:1px solid var(--play);background:var(--play-bg);border-radius:10px;padding:7px 12px;cursor:pointer;text-align:left;color:var(--ink);font:inherit}
+.pchip b{font-size:14px;white-space:nowrap}
+.pchip span{font:400 12px var(--mono);color:var(--muted);white-space:nowrap}
+.pchip.res-W{border-color:var(--play)} .pchip.res-L{border-color:var(--accent);background:var(--sharp-bg)}
+.gmeta .cd{font-family:var(--mono);color:var(--play)}
+.gmeta .live{color:var(--accent);font-weight:600}
+.game.started:not(.final) .gc{opacity:.72}
+.final-line{display:flex;align-items:center;gap:8px;font:600 12px var(--mono);color:var(--ink)}
+.rbadge{display:inline-block;font:700 11px var(--body);padding:1px 7px;border-radius:5px;margin-left:6px}
+.rbadge.W{background:var(--play);color:var(--card)} .rbadge.L{background:var(--accent);color:var(--card)} .rbadge.P{background:var(--pass-bg);color:var(--muted)}
+.results{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:8px;font-size:12px;color:var(--muted)}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btnrow .bd{margin-top:14px}
+.sharebtn{margin-top:14px;border:1px solid var(--play);background:none;border-radius:7px;padding:8px 12px;font:500 12px var(--mono);letter-spacing:.06em;text-transform:uppercase;cursor:pointer;color:var(--play)}
+.star{border:0;background:none;cursor:pointer;font-size:17px;line-height:1;color:var(--faint);padding:0 2px}
+.star.on{color:#e0a400}
+.gmeta{flex-wrap:wrap}
+.gmeta .right{display:flex;align-items:center;gap:10px;margin-left:auto}
 
 /* top 25 */
 .t25{background:var(--card);border:1px solid var(--rule);border-radius:12px;overflow:hidden;margin-top:18px}
@@ -259,7 +284,7 @@ const odds = o => (o > 0 ? "+" : "−") + Math.abs(o);
 const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 let state = {tab:"nfl", show:"all", q:"", rmkt:{}};
-try { const s = JSON.parse(localStorage.getItem("gapboard3") || "{}"); if (s.show) state.show = s.show; } catch(e){}
+try { const s = JSON.parse(localStorage.getItem("gapboard3") || "{}"); if (["all","play","gaps","today","fav","sharp"].includes(s.show)) state.show = s.show; } catch(e){}
 const hh = location.hash.slice(1); if (TABS.some(t => t[0]===hh)) state.tab = hh;
 const open = new Set();
 function save(){ try{ localStorage.setItem("gapboard3", JSON.stringify({show:state.show})); }catch(e){} }
@@ -436,17 +461,39 @@ const badge = ab => `<span class="badge" aria-hidden="true">${esc(String(ab||"")
 const logoImg = (src, ab) => src ? `<img class="logo" src="${esc(src)}" alt="" loading="lazy" decoding="async" data-ab="${esc(ab)}">` : badge(ab);
 // a logo that fails to load becomes an abbreviation badge
 document.addEventListener("error", e => { const t = e.target; if (t.tagName === "IMG" && t.classList.contains("logo")) t.outerHTML = badge(t.dataset.ab); }, true);
+// favorites live on this device only
+let favs = new Set();
+try { favs = new Set(JSON.parse(localStorage.getItem("gapboard_favs") || "[]")); } catch(e){}
+const saveFavs = () => { try { localStorage.setItem("gapboard_favs", JSON.stringify([...favs])); } catch(e){} };
+const isFav = g => favs.has(g.home) || favs.has(g.away);
+// graded picks for a game, from the ledger
+const ledgerFor = g => (DATA.picks || []).filter(p => String(p.game_id) === String(g.id) && p.sport === state.tab);
+const finalOf = g => { const p = ledgerFor(g).find(x => x.final); if (!p) return null; const [a, h] = String(p.final).split("-").map(Number); return {a, h}; };
+const started = g => !g.tbd && Date.now() >= new Date(g.kickoff).getTime();
+function countdown(ko){
+  const ms = new Date(ko).getTime() - Date.now();
+  if (ms <= 0 || ms > 36 * 3600e3) return "";
+  const h = Math.floor(ms / 3600e3), m = Math.floor(ms % 3600e3 / 60e3);
+  return `Starts in ${h ? h + "h " : ""}${m}m`;
+}
 function gameRow(g){
   const favH = g.model_margin >= 0;
   const isOpen = open.has(g.id);
   const d = new Date(g.kickoff);
   const time = g.tbd ? "Time TBA" : d.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit",timeZoneName:"short",timeZone:tz});
+  const fin = finalOf(g), st = started(g);
+  const L = ledgerFor(g);
+  const res = L.filter(p => ["W","L","P"].includes(p.result));
+  const status = fin ? `<span class="final-line">Final · ${esc(A(g))} ${fin.a} · ${esc(H(g))} ${fin.h}</span>`
+    : st ? `<span class="live">In progress</span>` : (!g.tbd && countdown(g.kickoff) ? `<span class="cd" data-ko="${esc(g.kickoff)}">${countdown(g.kickoff)}</span>` : "");
+  const star = `<button class="star${isFav(g) ? " on" : ""}" data-fav="${esc(g.id)}" aria-label="Star ${esc(g.away)} and ${esc(g.home)}" title="Favorite">${isFav(g) ? "★" : "☆"}</button>`;
+  const resRow = res.length ? `<div class="results">${res.map(p => `<span>${esc(p.market)}: ${esc(p.pick)}<span class="rbadge ${p.result}">${p.result}</span></span>`).join("")}</div>` : "";
   const also = [];
   if (totalPlay(g)) also.push(postedTag(g, "Total", `${g.ou ? g.ou.side : ""} ${g.total_line}`, `${g.ou ? g.ou.units : 1}u`));
   if (mlPlay(g)) also.push(postedTag(g, "Moneyline", `${abbrOf(g,g.ml.team)} ${odds(g.ml.odds)} ML`, `${g.ml.units}u`));
-  return `<article class="game${anyPlay(g)?" has-play":""}${isOpen?" open":""}" id="g-${g.id}">
+  return `<article class="game${anyPlay(g)?" has-play":""}${isOpen?" open":""}${st?" started":""}${fin?" final":""}" id="g-${g.id}">
     <div class="gc">
-      <div class="gmeta"><span class="vn">${esc(time)}${g.venue?` · ${esc(g.venue)}`:""}${g.neutral?" (neutral)":""}</span></div>
+      <div class="gmeta"><span class="vn">${esc(time)}${g.venue?` · ${esc(g.venue)}`:""}${g.neutral?" (neutral)":""}</span><span class="right">${status}${star}</span></div>
       <div class="teams">
         <div class="tm${favH?" dog":""}"><span class="who">${logoImg(g.logo_away, A(g))}<span class="n">${esc(g.away)}<span class="rec">${esc(g.away_rec)}</span></span></span><span class="s">${n1(g.proj_away)}</span></div>
         <div class="tm${favH?"":" dog"}"><span class="who">${logoImg(g.logo_home, H(g))}<span class="n">${esc(g.home)}<span class="rec">${esc(g.home_rec)}</span></span></span><span class="s">${n1(g.proj_home)}</span></div>
@@ -454,15 +501,71 @@ function gameRow(g){
       <div class="lines">
         <div><div class="k">Vegas line</div><div class="v">${esc(g.line!=null ? fullLine(g.line,g) : "Not posted")}</div></div>
         <div><div class="k">Model line</div><div class="v model">${esc(fullLine(g.model_margin,g))}</div></div>
+        ${g.move && g.move.open_line != null && g.move.open_line !== g.line ? `<div><div class="k">Opened</div><div class="v">${esc(fullLine(g.move.open_line,g))}</div></div>` : ""}
       </div>
       <div class="pickrow"><span class="k">Model pick</span>${pickRow(g)}</div>
       ${also.length ? `<div class="also">${also.join("")}</div>` : ""}
-      <button class="bd" data-toggle="${g.id}" aria-expanded="${isOpen}">Game breakdown ${isOpen?"↑":"→"}</button>
+      ${resRow}
+      <div class="btnrow"><button class="bd" data-toggle="${g.id}" aria-expanded="${isOpen}">Game breakdown ${isOpen?"↑":"→"}</button>${anyPlay(g) ? `<button class="sharebtn" data-share="${esc(g.id)}">Share play</button>` : ""}</div>
     </div>
     ${isOpen ? `${summary(g)}<div class="mkts">${cellSpread(g)}${cellTotal(g)}${cellML(g)}</div>${detail(g)}${extras(g)}` : ""}
   </article>`;
 }
 
+/* share card: draws the game's posted plays to an image and opens the phone's share sheet */
+async function sharePlay(g){
+  const plays = ledgerFor(g).filter(p => p.play);
+  if (!plays.length) return;
+  try { await document.fonts.ready; } catch(e){}
+  const W = 1080, HH = plays.length > 1 ? 1350 : 1080, c = document.createElement("canvas"); c.width = W; c.height = HH;
+  const x = c.getContext("2d");
+  const BG = "#11161c", INK = "#e4e9ee", MUTED = "#9aa7b4", PLAY = "#4ade80", ACC = "#fb8a4c";
+  x.fillStyle = BG; x.fillRect(0, 0, W, HH);
+  x.fillStyle = INK; x.font = "900 64px 'Big Shoulders Display', Impact, sans-serif"; x.fillText("GAP", 72, 120);
+  const gw = x.measureText("GAP").width; x.fillStyle = ACC; x.fillText("/", 72 + gw, 120);
+  x.fillStyle = INK; x.fillText("BOARD", 72 + gw + x.measureText("/").width, 120);
+  x.fillStyle = MUTED; x.font = "500 30px 'IBM Plex Sans', sans-serif";
+  const ko = g.tbd ? new Date(g.kickoff).toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric",timeZone:"America/New_York"}) + " · time TBA"
+    : new Date(g.kickoff).toLocaleString(undefined,{weekday:"long",month:"short",day:"numeric",hour:"numeric",minute:"2-digit",timeZoneName:"short",timeZone:tz});
+  x.fillText(`${g.away} at ${g.home}`, 72, 210); x.fillText(ko, 72, 254);
+  let y = 330;
+  const wrap = (text, font, maxw, lh, color) => { x.font = font; x.fillStyle = color; const words = String(text).split(" "); let line = "";
+    for (const w of words) { const t = line ? line + " " + w : w; if (x.measureText(t).width > maxw && line) { x.fillText(line, 72, y); y += lh; line = w; } else line = t; }
+    if (line) { x.fillText(line, 72, y); y += lh; } };
+  for (const p of plays) {
+    x.fillStyle = PLAY; x.fillRect(48, y - 8, 8, 52);
+    x.fillStyle = PLAY; x.font = "700 30px 'IBM Plex Sans', sans-serif"; x.fillText(`PLAY · ${p.market.toUpperCase()} · ${p.units}u`, 72, y + 30); y += 110;
+    wrap(p.pick + (p.market === "Moneyline" ? " ML" : ""), "800 84px 'Big Shoulders Display', Impact, sans-serif", W - 144, 92, INK);
+    y += 10;
+    let why = "";
+    if (p.market === "Moneyline" && g.ml) why = `Model win chance ${(g.ml.p*100).toFixed(1)}% vs market ${(g.ml.mkt_p*100).toFixed(1)}% · expected return +${(g.ml.ev*100).toFixed(1)}%`;
+    else if (p.market === "Spread" && g.pick) why = `Model line ${fullLine(g.model_margin, g)} vs Vegas ${fullLine(g.line, g)} · ${(g.pick.p*100).toFixed(1)}% to cover`;
+    else if (p.market === "Total" && g.ou) why = `Model total ${n1(g.model_total)} vs ${g.total_line} · ${(g.ou.p*100).toFixed(1)}% to hit`;
+    if (why) wrap(why, "500 34px 'IBM Plex Sans', sans-serif", W - 144, 46, MUTED);
+    const r = ["W","L","P"].includes(p.result) ? {W:"WON",L:"LOST",P:"PUSH"}[p.result] : "";
+    if (r) { x.fillStyle = p.result === "W" ? PLAY : p.result === "L" ? ACC : MUTED; x.font = "800 44px 'IBM Plex Sans', sans-serif"; const fs = p.final ? String(p.final).split("-") : null; x.fillText(r + (fs ? ` · ${A(g)} ${fs[0]}, ${H(g)} ${fs[1]}` : ""), 72, y + 20); y += 70; }
+    y += 50;
+  }
+  x.fillStyle = MUTED; x.font = "500 26px 'IBM Plex Sans', sans-serif";
+  x.fillText("Posted " + new Date(plays[0].posted).toLocaleString(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}) + " · locked", 72, HH - 110);
+  x.fillText("gapboard.pages.dev · model output, not betting advice", 72, HH - 66);
+  const blob = await new Promise(r => c.toBlob(r, "image/png"));
+  const file = new File([blob], `gapboard-play-${g.id}.png`, {type: "image/png"});
+  if (navigator.canShare && navigator.canShare({files: [file]})) { try { await navigator.share({files: [file], title: "Gap Board play"}); return; } catch(e){ if (e.name === "AbortError") return; } }
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = file.name; document.body.appendChild(a); a.click(); a.remove();
+}
+function playStrip(key){
+  const S = DATA[key];
+  const ids = new Map(S.board.map(g => [String(g.id), g]));
+  const P = (DATA.picks || []).filter(p => p.sport === key && p.play && ids.has(String(p.game_id)));
+  if (!P.length) return "";
+  const when = g => g.tbd ? new Date(g.kickoff).toLocaleDateString(undefined,{weekday:"short",timeZone:"America/New_York"}) + " TBA"
+    : new Date(g.kickoff).toLocaleString(undefined,{weekday:"short",hour:"numeric",minute:"2-digit",timeZone:tz});
+  P.sort((x, y) => new Date(ids.get(String(x.game_id)).kickoff) - new Date(ids.get(String(y.game_id)).kickoff));
+  return `<div class="strip" aria-label="This week's plays"><span class="k">Plays</span>${P.map(p => { const g = ids.get(String(p.game_id));
+    const r = ["W","L","P"].includes(p.result) ? `<span class="rbadge ${p.result}" style="margin:0">${p.result}</span>` : "";
+    return `<button class="pchip${r ? " res-" + p.result : ""}" data-jump="${esc(g.id)}"><b>${esc(p.pick)}${p.market === "Moneyline" ? " ML" : ""} ${r}</b><span>${p.units}u · ${esc(when(g))}</span></button>`; }).join("")}</div>`;
+}
 function recStrip(key){
   const P = (DATA.picks || []).filter(p => p.sport === key);
   const t = trackerSummary(P.filter(p => p.play)), a = trackerSummary(P);
@@ -473,8 +576,11 @@ function recStrip(key){
 function board(key){
   const S = DATA[key];
   const q = state.q.trim().toLowerCase();
+  const todayET = new Date().toLocaleDateString("en-CA",{timeZone:"America/New_York"});
+  const dayOf = g => { const t = new Date(g.kickoff).getTime(); return new Date(g.tbd ? t : t - 5*3600e3).toLocaleDateString("en-CA",{timeZone:"America/New_York"}); };
   const F = {
-    all: g => true, play: anyPlay, spread: spreadPlay, total: totalPlay, ml: mlPlay, sharp: sharp,
+    all: g => true, play: anyPlay, gaps: g => g.gap != null && Math.abs(g.gap) >= .25, today: g => dayOf(g) === todayET,
+    fav: isFav, sharp: g => sharp(g) || (g.move && g.move.rlm),
   };
   const counts = Object.fromEntries(Object.entries(F).map(([k,f]) => [k, S.board.filter(f).length]));
   let games = S.board.filter(F[state.show] || F.all);
@@ -494,7 +600,14 @@ function board(key){
     <p class="lede">${lede}</p>
     ${recStrip(key)}
     ${notes ? `<div class="callout">${notes}</div>` : ""}
-    <div class="filters" role="group" aria-label="Filter games">${chip("all","All games")}${chip("play","Any play")}${chip("spread","Spread plays")}${chip("total","Total plays")}${chip("ml","Moneyline plays")}${chip("sharp","Money vs bets")}</div>`;
+    ${playStrip(key)}
+    <div class="filters" role="group" aria-label="Filter games">${chip("all","All games")}${chip("play","Plays")}${chip("gaps","Biggest gaps")}${chip("today","Today")}${chip("fav","★ Favorites")}${chip("sharp","Sharp signals")}</div>`;
+  if (state.show === "gaps") {
+    const ranked = games.slice().sort((x, y) => Math.abs(y.gap) - Math.abs(x.gap));
+    html += `<div class="day"><span>Largest gaps between the model and the line</span><span>${ranked.length} games</span></div><div class="games">${ranked.map(gameRow).join("")}</div>`;
+    if (!ranked.length) html += `<p class="note" style="margin-top:16px">No games match.</p>`;
+    return html;
+  }
   // Group by the game's slate day on the East Coast: a 10:30 PM Pacific kickoff still belongs to Saturday,
   // and games with no kickoff time yet (listed at midnight Eastern) belong to that date, after the timed games.
   const ET = "America/New_York";
@@ -542,6 +655,46 @@ function top25Page(){
   return head + `<div class="t25"><div class="r hd"><span style="text-align:right">Rank</span><span></span><span></span><span>Team</span><span style="text-align:right">Rating</span><span style="text-align:right">Favored vs FBS</span><span style="text-align:right">Spread vs No. 1</span></div>${rows}</div>
     <p class="note" style="margin-top:12px">${T.field} FBS teams with three or more games this season. Same model as the board: opponent-adjusted ratings plus the context factors that carry over to a neutral site. Home field, rest and travel are left out.</p>`;
 }
+function unitsChart(all){
+  const done = all.filter(p => ["W","L","P"].includes(p.result)).sort((a, b) => new Date(a.kickoff) - new Date(b.kickoff));
+  if (done.length < 2) return `<p class="note">The chart starts once a few picks are graded.</p>`;
+  const series = [["All model picks (1u each)", done, "var(--faint)"], ["Plays", done.filter(p => p.play), "var(--play)"]].map(([name, rows, color]) => {
+    let c = 0; const pts = rows.map(p => ({t: new Date(p.kickoff).getTime(), u: (c += (p.profit || 0) * (p.play && name === "Plays" ? p.units : 1))}));
+    return {name, color, pts};
+  });
+  const all_ = series.flatMap(x => x.pts);
+  if (!all_.length) return "";
+  const W = 720, H = 220, L = 44, R = 16, T = 14, B = 26;
+  const t0 = Math.min(...all_.map(p => p.t)), t1 = Math.max(...all_.map(p => p.t)) || t0 + 1;
+  const lo = Math.min(0, ...all_.map(p => p.u)), hi = Math.max(0, ...all_.map(p => p.u));
+  const pad = (hi - lo) * .12 || 1;
+  const X = t => L + (t - t0) / Math.max(t1 - t0, 1) * (W - L - R), Y = u => T + (hi + pad - u) / (hi - lo + 2 * pad) * (H - T - B);
+  const step = Math.max(1, Math.ceil((hi - lo + 2 * pad) / 4));
+  const ticks = []; for (let v = Math.ceil((lo - pad) / step) * step; v <= hi + pad; v += step) ticks.push(v);
+  const path = pts => pts.map((p, i) => `${i ? "L" : "M"}${X(p.t).toFixed(1)} ${Y(p.u).toFixed(1)}`).join("");
+  const d0 = new Date(t0).toLocaleDateString(undefined,{month:"short",day:"numeric"}), d1 = new Date(t1).toLocaleDateString(undefined,{month:"short",day:"numeric"});
+  return `<div class="tablewrap" style="padding:12px 12px 8px"><svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Units won over time">
+    ${ticks.map(v => `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--rule)" ${v === 0 ? 'stroke-width="1.5"' : ""}/><text x="${L - 8}" y="${Y(v) + 4}" text-anchor="end" font-size="11" fill="var(--muted)" font-family="var(--mono)">${v > 0 ? "+" : ""}${v}u</text>`).join("")}
+    <text x="${L}" y="${H - 6}" font-size="11" fill="var(--muted)">${d0}</text><text x="${W - R}" y="${H - 6}" text-anchor="end" font-size="11" fill="var(--muted)">${d1}</text>
+    ${series.filter(x => x.pts.length).map(x => `<path d="${path(x.pts)}" fill="none" stroke="${x.color}" stroke-width="2.25" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${X(x.pts.at(-1).t)}" cy="${Y(x.pts.at(-1).u)}" r="3.5" fill="${x.color}"/>`).join("")}
+  </svg><div class="note" style="display:flex;gap:16px;flex-wrap:wrap;margin-top:4px">${series.map(x => `<span><span style="display:inline-block;width:12px;height:3px;background:${x.color};vertical-align:middle;margin-right:6px;border-radius:2px"></span>${x.name}: ${x.pts.length ? (x.pts.at(-1).u > 0 ? "+" : "") + x.pts.at(-1).u.toFixed(1) + "u" : "—"}</span>`).join("")}</div></div>`;
+}
+function edgeTable(all){
+  const g = all.filter(p => ["W","L"].includes(p.result));
+  const bands = [
+    ["Spreads & totals: lean (under 52.4%)", p => p.market !== "Moneyline" && p.chance < .5238],
+    ["Spreads & totals: 52.4–55%", p => p.market !== "Moneyline" && p.chance >= .5238 && p.chance < .55],
+    ["Spreads & totals: 55–57.5%", p => p.market !== "Moneyline" && p.chance >= .55 && p.chance < .575],
+    ["Spreads & totals: 57.5%+", p => p.market !== "Moneyline" && p.chance >= .575],
+    ["Moneylines: expected return under 5%", p => p.market === "Moneyline" && (p.ev ?? 0) < .05],
+    ["Moneylines: 5–8%", p => p.market === "Moneyline" && p.ev >= .05 && p.ev < .08],
+    ["Moneylines: 8%+", p => p.market === "Moneyline" && p.ev >= .08],
+  ];
+  const rows = bands.map(([label, f]) => { const x = g.filter(f), W = x.filter(p => p.result === "W").length, u = x.reduce((t, p) => t + (p.profit || 0), 0);
+    return `<tr><td class="l">${label}</td><td>${W}-${x.length - W}</td><td>${x.length ? (W / x.length * 100).toFixed(1) + "%" : "—"}</td><td class="${u > 0 ? "pos" : u < 0 ? "neg" : ""}">${x.length ? (u > 0 ? "+" : "") + u.toFixed(1) : "—"}</td></tr>`; }).join("");
+  return `<div class="tablewrap"><table class="t"><thead><tr><th class="l">Model's edge when posted</th><th>Record</th><th>Win %</th><th>Units (1u each)</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <p class="note">Every graded pick, grouped by how big the model said its edge was. If the model is calibrated, bigger edges should win more often. This is how the thresholds get tuned over time.</p>`;
+}
 function liveRecordPage(){
   const all = DATA.picks || [];
   const track = state.track || "plays";
@@ -562,7 +715,9 @@ function liveRecordPage(){
     <div class="summary"><div><div class="k">Record</div><div class="v">${T.W}-${T.L}${T.Pu?"-"+T.Pu:""}</div><div class="s">${T.done.length ? `${(T.W/Math.max(T.W+T.L,1)*100).toFixed(1)}% of graded ${track==="plays"?"plays":"picks"}` : "nothing graded yet"}</div></div>
       <div><div class="k">Units</div><div class="v ${T.units>0?"pos":T.units<0?"neg":""}">${T.units>0?"+":""}${T.units.toFixed(1)}u</div><div class="s">${T.risk?`${(T.units/T.risk*100).toFixed(1)}% return on ${T.risk}u risked`:(track==="plays"?"flat stakes, 1 to 3 units":"1 unit per pick")}</div></div>
       <div><div class="k">Open</div><div class="v">${T.pend.length}</div><div class="s">waiting on results</div></div></div>
+    <h2>Units over time</h2>${unitsChart(all)}
     <h2>By sport and market</h2>${marketGrid(P)}
+    <h2>By size of the edge</h2>${edgeTable(all)}
     <h2>Open ${track==="plays"?"plays":"picks"}</h2>${openList}
     <h2>Graded ${track==="plays"?"plays":"picks"}</h2>${table(T.done.slice().reverse(), "Nothing graded yet. The first results land after this week's games.")}`;
 }
@@ -625,6 +780,11 @@ $("#tabs").addEventListener("click", e => { const k = e.target.closest("button")
 $("#q").addEventListener("input", e => { state.q = e.target.value; render(); });
 $("#main").addEventListener("click", e => {
   const c = e.target.closest("[data-show]"); if (c) { state.show = c.dataset.show; save(); render(); return; }
+  const sh = e.target.closest("[data-share]");
+  if (sh) { const g = (DATA[state.tab]?.board || []).find(x => String(x.id) === sh.dataset.share); if (g) sharePlay(g); return; }
+  const fv = e.target.closest("[data-fav]");
+  if (fv) { const g = (DATA[state.tab]?.board || []).find(x => String(x.id) === fv.dataset.fav);
+    if (g) { const on = isFav(g); [g.home, g.away].forEach(t => on ? favs.delete(t) : favs.add(t)); saveFavs(); render(); } return; }
   const tk = e.target.closest("[data-track]"); if (tk) { state.track = tk.dataset.track; render(); return; }
   const rm = e.target.closest("[data-rm]"); if (rm) { const [s,m] = rm.dataset.rm.split(":"); state.rmkt[s] = m; render(); return; }
   const j = e.target.closest("[data-jump]");
@@ -634,8 +794,10 @@ $("#main").addEventListener("click", e => {
   if (l) { const id = l.dataset.toggle; open.has(id) ? open.delete(id) : open.add(id); render(); const b = document.querySelector(`[data-toggle="${id}"]`); if (b) b.focus({preventScroll:true}); }
 });
 $("#main").addEventListener("keydown", e => {
-  if ((e.key === "Enter" || e.key === " ") && e.target.matches(".prow[data-jump]")) { e.preventDefault(); e.target.click(); }
+  if ((e.key === "Enter" || e.key === " ") && e.target.matches(".prow[data-jump], .pchip[data-jump]")) { e.preventDefault(); e.target.click(); }
 });
+setInterval(() => { document.querySelectorAll(".cd[data-ko]").forEach(el => { const t = countdown(el.dataset.ko); if (t) el.textContent = t; else render(); }); }, 30000);
+if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("/sw.js").catch(() => {});
 $("#labtag").textContent = MODE === "lab" ? "Lab" : "";
 $("#upd").textContent = "Model run " + new Date(DATA.updated).toLocaleString(undefined,{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit",timeZoneName:"short"}) + ".";
 render();
