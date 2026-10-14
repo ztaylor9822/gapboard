@@ -1,2 +1,1 @@
-build a7338ac
-model run 2026-10-13 19:30 CDT
+model run 2026-10-13 19:30 UTC-05:00
