@@ -194,6 +194,19 @@ h3{font:600 15px var(--body);margin:22px 0 8px}
 .recstrip b{color:var(--ink);font:600 14px var(--mono)}
 
 /* record & tables */
+@media (max-width:640px){
+  table.t.rec thead{display:none}
+  table.t.rec,table.t.rec tbody{display:block}
+  table.t.rec tr{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;gap:2px 10px;padding:10px 12px;border-bottom:1px solid var(--rule)}
+  table.t.rec tr:last-child{border-bottom:0}
+  table.t.rec td{border:0;padding:0;white-space:normal;text-align:left}
+  table.t.rec td:nth-child(3){grid-column:1/4;grid-row:1}
+  table.t.rec td:nth-child(4){grid-column:4;grid-row:1;text-align:right}
+  table.t.rec td:nth-child(1){grid-column:1;grid-row:2;font-size:12px;color:var(--muted)}
+  table.t.rec td:nth-child(2){grid-column:2;grid-row:2;font-size:12px;color:var(--muted)}
+  table.t.rec td:nth-child(6){grid-column:3;grid-row:2;font-size:12px}
+  table.t.rec td:nth-child(5){grid-column:4;grid-row:2;text-align:right;font-size:12px;color:var(--muted)}
+}
 .tablewrap{overflow-x:auto;border:1px solid var(--rule);border-radius:10px;background:var(--card)}
 table.t{border-collapse:collapse;width:100%;font-size:13px}
 table.t th,table.t td{padding:8px 12px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--rule)}
@@ -536,7 +549,7 @@ function liveRecordPage(){
   const T = trackerSummary(P);
   const launched = new Date(DATA.launched+"T12:00:00").toLocaleDateString(undefined,{month:"long",day:"numeric",year:"numeric"});
   const row = p => `<tr><td class="l">${esc(p.sport.toUpperCase())}</td><td class="l">${esc(p.market)}</td><td class="l"><b>${esc(p.pick)}</b>${p.play&&track==="all"?' <span class="tag play" style="margin:0 0 0 4px">PLAY</span>':""}<div class="dim" style="font-size:12px">${esc(p.away)} at ${esc(p.home)}</div></td><td>${p.price>0?"+":""}${p.price}</td><td>${p.units}u</td><td class="l ${p.result==="W"?"pos":p.result==="L"?"neg":"dim"}">${{W:"Won",L:"Lost",P:"Push",pending:"Pending"}[p.result]}</td></tr>`;
-  const table = (rows, empty) => rows.length ? `<div class="tablewrap"><table class="t"><thead><tr><th class="l">Sport</th><th class="l">Market</th><th class="l">Pick</th><th>Price</th><th>Stake</th><th class="l">Result</th></tr></thead><tbody>${rows.map(row).join("")}</tbody></table></div>` : `<p class="note">${empty}</p>`;
+  const table = (rows, empty) => rows.length ? `<div class="tablewrap"><table class="t rec"><thead><tr><th class="l">Sport</th><th class="l">Market</th><th class="l">Pick</th><th>Price</th><th>Stake</th><th class="l">Result</th></tr></thead><tbody>${rows.map(row).join("")}</tbody></table></div>` : `<p class="note">${empty}</p>`;
   const intro = track === "plays"
     ? "The highlighted plays: posted before kickoff at the price and stake shown, graded after the game. Nothing is removed."
     : "Every side the model leans on, for every game with a line: spread, total and moneyline. Each is graded at 1 unit (−110 for spreads and totals, the posted price for moneylines) so you can see how the model's raw opinion does, threshold or not.";
