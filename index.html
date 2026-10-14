@@ -360,7 +360,6 @@ function gameRow(g){
 
 function board(key){
   const S = DATA[key];
-  const P = plays(S);
   const q = state.q.trim().toLowerCase();
   const F = {
     all: g => true, play: anyPlay, spread: spreadPlay, total: totalPlay, ml: mlPlay, sharp: sharp,
@@ -381,10 +380,6 @@ function board(key){
   let html = `<div class="head"><div><div class="eyebrow">${esc(S.label)}</div><h1>${esc(S.week)}</h1></div>
       <div class="stamp">Lines and splits: DraftKings, ${new Date(DATA.splits_captured).toLocaleString(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})}</div></div>
     <p class="lede">${lede}</p>
-    <section class="plays"><div class="ph"><b>This week's plays</b><span>${P.length ? `${P.length} flagged · tap one to jump to the game` : "None flagged"}</span></div>
-      ${P.length ? `<div>${P.map(p => `<div class="prow" role="button" tabindex="0" data-jump="${p.g.id}"><span class="mk">${p.mk}</span><span class="pick"><b>${esc(p.pick)}</b> <span class="num">${esc(p.price)}</span><small>${esc(p.g.away)} at ${esc(p.g.home)}</small></span><span class="why">${esc(p.why)}</span><span class="size">${esc(p.size)}</span></div>`).join("")}</div>`
-        : `<div class="empty">Nothing clears the filter this week${key==="nba"?" (NBA stakes aren't calibrated yet)":""}.</div>`}
-    </section>
     ${notes ? `<div class="callout">${notes}</div>` : ""}
     <div class="filters" role="group" aria-label="Filter games">${chip("all","All games")}${chip("play","Any play")}${chip("spread","Spread plays")}${chip("total","Total plays")}${chip("ml","Moneyline plays")}${chip("sharp","Money vs bets")}</div>`;
   const days = new Map();
