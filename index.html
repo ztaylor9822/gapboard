@@ -460,8 +460,13 @@ function board(key){
     ${recStrip(key)}
     ${notes ? `<div class="callout">${notes}</div>` : ""}
     <div class="filters" role="group" aria-label="Filter games">${chip("all","All games")}${chip("play","Any play")}${chip("spread","Spread plays")}${chip("total","Total plays")}${chip("ml","Moneyline plays")}${chip("sharp","Money vs bets")}</div>`;
+  // Group by the game's slate day on the East Coast: a 10:30 PM Pacific kickoff still belongs to Saturday,
+  // and games with no kickoff time yet (listed at midnight Eastern) belong to that date, after the timed games.
+  const ET = "America/New_York";
+  const dayKey = g => { const t = new Date(g.kickoff).getTime(); return new Date(g.tbd ? t : t - 5*3600e3).toLocaleDateString("en-CA",{timeZone:ET}); };
+  const sorted = games.map(g => ({g, k: dayKey(g)})).sort((x, y) => x.k < y.k ? -1 : x.k > y.k ? 1 : (x.g.tbd - y.g.tbd) || (new Date(x.g.kickoff) - new Date(y.g.kickoff)));
   const days = new Map();
-  games.forEach(g => { const d = new Date(g.kickoff).toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric",timeZone:tz}); if(!days.has(d)) days.set(d, []); days.get(d).push(g); });
+  sorted.forEach(({g, k}) => { const d = new Date(k + "T12:00:00Z").toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric",timeZone:"UTC"}); if(!days.has(d)) days.set(d, []); days.get(d).push(g); });
   for (const [d, gs] of days) html += `<div class="day"><span>${esc(d)}</span><span>${gs.length} game${gs.length>1?"s":""}</span></div><div class="games">${gs.map(gameRow).join("")}</div>`;
   if (!games.length) html += `<p class="note" style="margin-top:16px">No games match${q?` “${esc(state.q)}”`:""}.</p>`;
   return html;
