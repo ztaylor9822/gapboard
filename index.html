@@ -459,14 +459,15 @@ function labPage(){
 function recordPage(){ return MODE === "lab" ? labPage() + `<h2>Live record</h2>` + liveRecordPage().replace(/<div class="head">[\s\S]*?<\/p>/, "") : liveRecordPage(); }
 function howPage(){
   if (MODE !== "lab") return `<div class="head"><div><div class="eyebrow">About</div><h1>How it works</h1></div></div>
-    <p class="lede">Gap Board projects a score for every NFL, college football and NBA game, compares it with the DraftKings line, and posts a play only when the edge is big enough to beat the cost of betting.</p>
+    <p class="lede">Gap Board projects a score for every NFL, college football and NBA game, compares it with the Vegas line, and flags a bet only when the edge is big enough to beat the cost of betting.</p>
     <ol class="layers">
-      <li><div><b>Team ratings</b>Every team is rated from play-by-play data and adjusted for the opponents it has faced.</div></li>
-      <li><div><b>Game context</b>Each matchup is adjusted for the circumstances of that game.</div></li>
-      <li><div><b>Market check</b>The projection is weighed against the betting market. Spreads and totals become plays above a 52.4% chance to win at −110; moneylines when the expected return at the posted price is 5% or more.</div></li>
-      <li><div><b>Stakes</b>1 to 3 units by the size of the edge. Every play is graded on the Record tab.</div></li>
+      <li><div><b>Team ratings</b>Every team is rated from play-by-play and box-score data, adjusted for the opponents it has faced, with recent games counting most.</div></li>
+      <li><div><b>Players and context</b>Each matchup is adjusted for who is actually playing and the circumstances of that game.</div></li>
+      <li><div><b>Reading a game</b>Each game shows the Vegas line next to the model's line. The model pick is the side the model prefers, with the gap between the two lines in parentheses. Everything else (totals, moneylines, betting splits, notes) is under Game breakdown.</div></li>
+      <li><div><b>Market check</b>A gap alone isn't a bet. The projection is weighed against the market, using Circa, a sharp sportsbook, as the reference. Spreads and totals are flagged above a 52.4% chance to win at −110; moneylines when the expected return at the posted price is 5% or more. Flagged bets are highlighted in green.</div></li>
+      <li><div><b>Stakes and grading</b>Flagged bets are 1 to 3 units by the size of the edge. NBA bets aren't sized until its live record is long enough to trust. Each pick is posted once, at the first DraftKings number we see, and never changed. The Record tab grades the flagged plays and, separately, every model pick at 1 unit, plus how often our number beat the closing line.</div></li>
     </ol>
-    <p class="note" style="margin-top:22px">Lines and betting splits: DraftKings. Projections are model output, not betting advice.</p>`;
+    <p class="note" style="margin-top:22px">Lines and betting splits: DraftKings, with Circa as the sharp reference. Projections are model output, not betting advice.</p>`;
   return `<div class="head"><div><div class="eyebrow">Method</div><h1>How it works</h1></div></div>
     <ol class="layers">
       <li><div><b>Baseline engine</b>Opponent-adjusted offense, defense and pace ratings from play-by-play (NFL since 1999, college since 2004) and box scores (NBA since 2003), recency-weighted, with last season discounted.</div></li>
