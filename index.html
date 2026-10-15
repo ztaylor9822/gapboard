@@ -258,6 +258,12 @@ table.t tr.tot td{font-weight:600;background:var(--sunk)}
 .summary .k{font-size:12px;color:var(--muted)}
 .summary .v{font:500 20px var(--mono);margin-top:2px}
 .summary .s{font-size:12px;color:var(--muted)}
+.clvhead{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin:4px 0 10px}
+.verdict{font:600 12px var(--body);padding:3px 9px;border-radius:5px;background:var(--pass-bg);color:var(--muted)}
+.verdict.good{background:var(--play-bg);color:var(--play)} .verdict.bad{background:var(--sharp-bg);color:var(--accent)}
+.clvbar{flex:1 1 160px;min-width:0;display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}
+.clvbar .b{height:6px;border-radius:3px;background:var(--pass-bg);overflow:hidden}
+.clvbar .b i{display:block;height:100%;background:var(--play)}
 details.more{margin-top:14px}
 details.more summary{cursor:pointer;font-size:14px;font-weight:500}
 .layers{display:grid;gap:16px;max-width:74ch;padding:0;list-style:none;counter-reset:s;margin-top:18px}
@@ -755,6 +761,34 @@ function edgeTable(all){
   return `<div class="tablewrap"><table class="t"><thead><tr><th class="l">Model's edge when posted</th><th>Record</th><th>Win %</th><th>Units (1u each)</th></tr></thead><tbody>${rows}</tbody></table></div>
     <p class="note">Every graded pick, grouped by how big the model said its edge was. If the model is calibrated, bigger edges should win more often. This is how the thresholds get tuned over time.</p>`;
 }
+function clvBoard(P, track){
+  // closing-line value: did the number move our way between posting and kickoff? Spreads and totals in points,
+  // moneylines in points of implied win chance. Measured when a pick is graded.
+  const c = P.filter(p => p.clv != null && !isNaN(p.clv));
+  const n = c.length, beat = c.filter(p => p.clv > 0).length, lost = c.filter(p => p.clv < 0).length, same = n - beat - lost;
+  const avg = xs => xs.length ? xs.reduce((t, p) => t + p.clv, 0) / xs.length : null;
+  const pts = c.filter(p => p.market !== "Moneyline"), ml = c.filter(p => p.market === "Moneyline");
+  const sg = v => v == null ? "—" : `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(v).toFixed(2)}`;
+  const moved = beat + lost, rate = moved ? beat / moved : null;
+  const TARGET = 200, half = rate != null ? 1.96 * Math.sqrt(rate * (1 - rate) / Math.max(moved, 1)) : 0;
+  let verdict = ["", "Too early to call"];
+  if (moved >= 50) verdict = rate - half > .5 ? ["good", "Beating the close"] : rate + half < .5 ? ["bad", "Not beating the close"] : ["", "No clear edge yet"];
+  const label = track === "plays" ? "plays" : "picks";
+  const rows = [];
+  for (const sp of ["nfl", "cfb", "nba"]) {
+    const x = c.filter(p => p.sport === sp); if (!x.length) continue;
+    const b = x.filter(p => p.clv > 0).length, l = x.filter(p => p.clv < 0).length;
+    rows.push(`<tr><td class="l">${{nfl:"NFL",cfb:"College",nba:"NBA"}[sp]}</td><td>${x.length}</td><td>${b}-${x.length - b - l}-${l}</td><td>${b + l ? (b / (b + l) * 100).toFixed(0) + "%" : "—"}</td><td>${sg(avg(x.filter(p => p.market !== "Moneyline")))}</td><td>${sg(avg(x.filter(p => p.market === "Moneyline")))}</td></tr>`);
+  }
+  return `<h2>Closing line value</h2>
+    <div class="clvhead"><span class="verdict ${verdict[0]}">${verdict[1]}</span>
+      <div class="clvbar"><span>${n} of ${TARGET} ${label} measured${n >= TARGET ? " · enough to judge" : ""}</span><div class="b"><i style="width:${Math.min(100, n / TARGET * 100)}%"></i></div></div></div>
+    <div class="summary"><div><div class="k">Beat the close</div><div class="v ${rate == null ? "" : rate > .5 ? "pos" : rate < .5 ? "neg" : ""}">${rate == null ? "—" : (rate * 100).toFixed(0) + "%"}</div><div class="s">${n ? `${beat} beat · ${same} same · ${lost} worse` : `no graded ${label} yet`}</div></div>
+      <div><div class="k">Spreads and totals</div><div class="v ${avg(pts) > 0 ? "pos" : avg(pts) < 0 ? "neg" : ""}">${sg(avg(pts))}${pts.length ? " pts" : ""}</div><div class="s">average move per pick, ${pts.length} measured</div></div>
+      <div><div class="k">Moneylines</div><div class="v ${avg(ml) > 0 ? "pos" : avg(ml) < 0 ? "neg" : ""}">${sg(avg(ml))}${ml.length ? " pts" : ""}</div><div class="s">win chance gained, ${ml.length} measured</div></div></div>
+    ${rows.length ? `<div class="tablewrap"><table class="t"><thead><tr><th class="l">Sport</th><th>Measured</th><th>Beat-same-worse</th><th>Beat rate</th><th>Avg pts (spread/total)</th><th>Avg pts (moneyline)</th></tr></thead><tbody>${rows.join("")}</tbody></table></div>` : ""}
+    <p class="note">Closing line value asks whether the betting market moved toward our pick after it posted. Beating the closing number consistently is the best early sign of a real edge, well before the win-loss record settles; a few hundred ${label} are needed to tell it from luck. Spreads and totals are measured in points, moneylines in points of implied win chance; the close is the official closing line, or the last DraftKings capture before the game. The verdict needs at least 50 ${label} that moved, and calls an edge only when the beat rate is clear of 50% with 95% confidence.</p>`;
+}
 function liveRecordPage(){
   const all = DATA.picks || [];
   const track = state.track || "plays";
@@ -775,6 +809,7 @@ function liveRecordPage(){
     <div class="summary"><div><div class="k">Record</div><div class="v">${T.W}-${T.L}${T.Pu?"-"+T.Pu:""}</div><div class="s">${T.done.length ? `${(T.W/Math.max(T.W+T.L,1)*100).toFixed(1)}% of graded ${track==="plays"?"plays":"picks"}` : "nothing graded yet"}</div></div>
       <div><div class="k">Units</div><div class="v ${T.units>0?"pos":T.units<0?"neg":""}">${T.units>0?"+":""}${T.units.toFixed(1)}u</div><div class="s">${T.risk?`${(T.units/T.risk*100).toFixed(1)}% return on ${T.risk}u risked`:(track==="plays"?"flat stakes, 1 to 3 units":"1 unit per pick")}</div></div>
       <div><div class="k">Open</div><div class="v">${T.pend.length}</div><div class="s">waiting on results</div></div></div>
+    ${clvBoard(P, track)}
     <h2>Units over time</h2>${unitsChart(all)}
     <h2>By sport and market</h2>${marketGrid(P)}
     <h2>By size of the edge</h2>${edgeTable(all)}
