@@ -47,7 +47,7 @@ button,input,select{font:inherit;color:inherit}
 /* header */
 .top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);margin-inline:-16px;padding:12px 16px;border-bottom:1px solid var(--rule)}
 .top .in{max-width:1040px;margin:0 auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.brand{font:900 24px/1 var(--display);letter-spacing:.02em;text-transform:uppercase;margin-right:auto}
+.brand{font:900 24px/1 var(--display);letter-spacing:.02em;text-transform:uppercase;margin-right:auto;color:var(--ink);text-decoration:none;cursor:pointer}
 .brand span{color:var(--accent)}
 .tabs{display:flex;gap:2px;background:var(--sunk);padding:3px;border-radius:8px;max-width:100%;overflow-x:auto;scrollbar-width:none}
 .tabs::-webkit-scrollbar{display:none}
@@ -270,6 +270,26 @@ details.more summary{cursor:pointer;font-size:14px;font-weight:500}
 .layers li{counter-increment:s;display:grid;grid-template-columns:2.6rem 1fr;gap:8px}
 .layers li::before{content:counter(s,decimal-leading-zero);font:900 24px/1.1 var(--display);color:var(--accent)}
 .layers b{display:block;margin-bottom:2px}
+/* home */
+.hsports{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:12px}
+.hsport{display:flex;flex-direction:column;justify-content:flex-start;text-align:left;background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:12px 14px;cursor:pointer;color:var(--ink);font:inherit}
+.hsport:hover{border-color:var(--accent)}
+.hsport .t{font:800 20px/1 var(--display);text-transform:uppercase}
+.hsport .w{font-size:13px;color:var(--muted);margin-top:4px}
+.hsport .n{font:500 13px var(--mono);margin-top:8px}
+.hsport .lean{font-size:11px;color:var(--faint);margin-top:2px}
+.hplays{background:var(--card);border:1px solid var(--rule);border-radius:10px;overflow:hidden;margin-top:12px}
+.hrow{display:grid;grid-template-columns:3.4rem minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--rule);cursor:pointer;width:100%;background:none;border-left:0;border-right:0;border-top:0;text-align:left;color:var(--ink);font:inherit}
+.hrow:last-child{border-bottom:0}
+.hrow:hover{background:var(--sunk)}
+.hrow .sp{font:600 11px var(--body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.hrow .pk b{font-size:15px}
+.hrow .pk .m{font-size:12px;color:var(--muted)}
+.hrow .rt{text-align:right;font:500 13px var(--mono)}
+.hrow .rt .bp{display:block;font:400 12px var(--body);color:var(--play)}
+.bestp{color:var(--play)}
+.hrow .tm.now{color:var(--play);font-weight:600} .hrow .tm.caution{color:var(--accent);font-weight:600} .hrow .tm.gone,.hrow .tm.hold{color:var(--muted)}
+.wrap a{color:var(--accent);text-underline-offset:2px}
 footer{margin-top:44px;font-size:12px;color:var(--muted);border-top:1px solid var(--rule);padding-top:12px}
 </style>
 
@@ -277,7 +297,7 @@ footer{margin-top:44px;font-size:12px;color:var(--muted);border-top:1px solid va
 </head>
 <body>
 <header class="top"><div class="in">
-  <div class="brand">Gap<span>/</span>Board<span id="labtag" style="color:var(--muted);font-size:.6em;margin-left:.35em"></span></div>
+  <a class="brand" href="#home" id="brand" aria-label="Gap Board home">Gap<span>/</span>Board<span id="labtag" style="color:var(--muted);font-size:.6em;margin-left:.35em"></span></a>
   <nav class="tabs" role="tablist" id="tabs"></nav>
   <label class="search" for="q"><input id="q" type="search" placeholder="Find a team" autocomplete="off" aria-label="Find a team"></label>
 </div></header>
@@ -297,9 +317,9 @@ const pct0 = p => Math.round(p*100) + "%";
 const odds = o => (o > 0 ? "+" : "−") + Math.abs(o);
 const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-let state = {tab:"nfl", show:"all", q:"", rmkt:{}};
+let state = {tab:"home", show:"all", q:"", rmkt:{}};
 try { const s = JSON.parse(localStorage.getItem("gapboard3") || "{}"); if (["all","play","gaps","today","fav","sharp"].includes(s.show)) state.show = s.show; } catch(e){}
-const hh = location.hash.slice(1); if (TABS.some(t => t[0]===hh)) state.tab = hh;
+const hh = location.hash.slice(1); if (hh === "home" || TABS.some(t => t[0]===hh)) state.tab = hh;
 const open = new Set();
 function save(){ try{ localStorage.setItem("gapboard3", JSON.stringify({show:state.show})); }catch(e){} }
 
@@ -343,7 +363,7 @@ function cellSpread(g){
     play = spreadPlay(g);
     tag = play ? postedTag(g, "Spread", side, `${g.pick.units}u`) : leanTag(side, g.pick.p != null ? pct0(g.pick.p) : null);
   } else if (g.line != null) tag = `<span class="tag pass">No lean</span>`;
-  return `<div class="mkt${play?" is-play":""}"><span class="mlabel">${state.tab==="nhl"?"Puck line":"Spread"}</span><div class="big">${esc(top)}</div><div class="sub">${esc(sub)}</div>${tag}</div>`;
+  return `<div class="mkt${play?" is-play":""}"><span class="mlabel">${state.tab==="nhl"?"Puck line":"Spread"}</span><div class="big">${esc(top)}</div><div class="sub">${esc(sub)}</div>${bestTxt(g, "Spread", true) ? `<div class="sub bestp">Best: ${bestTxt(g, "Spread", true)}</div>` : ""}${tag}</div>`;
 }
 function cellTotal(g){
   const top = g.total_line != null ? `O/U ${g.total_line}` : "No line";
@@ -354,7 +374,7 @@ function cellTotal(g){
     play = totalPlay(g);
     tag = play ? postedTag(g, "Total", `${side} ${g.total_line}`, `${g.ou ? g.ou.units : 1}u`) : leanTag(`${side} ${g.total_line}`, g.ou ? pct0(g.ou.p) : null);
   } else if (g.total_line != null) tag = `<span class="tag pass">No lean</span>`;
-  return `<div class="mkt${play?" is-play":""}"><span class="mlabel">Total</span><div class="big">${esc(top)}</div><div class="sub">${esc(sub)}</div>${tag}</div>`;
+  return `<div class="mkt${play?" is-play":""}"><span class="mlabel">Total</span><div class="big">${esc(top)}</div><div class="sub">${esc(sub)}</div>${bestTxt(g, "Total", true) ? `<div class="sub bestp">Best: ${bestTxt(g, "Total", true)}</div>` : ""}${tag}</div>`;
 }
 function cellML(g){
   const pw = g.p_win_home;
@@ -366,7 +386,7 @@ function cellML(g){
   const side = `${abbrOf(g,g.ml.team)} ${odds(g.ml.odds)}`;
   const play = mlPlay(g);
   const tag = play ? postedTag(g, "Moneyline", side, `${g.ml.units}u`) : leanTag(side, ev);
-  return `<div class="mkt${play?" is-play":""}"><span class="mlabel">Moneyline</span><div class="big">${esc(top)}</div><div class="sub">${esc(sub)}</div>${tag}</div>`;
+  return `<div class="mkt${play?" is-play":""}"><span class="mlabel">Moneyline</span><div class="big">${esc(top)}</div><div class="sub">${esc(sub)}</div>${bestTxt(g, "Moneyline", true) ? `<div class="sub bestp">Best: ${bestTxt(g, "Moneyline", true)}</div>` : ""}${tag}</div>`;
 }
 function whenTxt(g){
   if (g.tbd) return `<b>TBA</b>`;
@@ -463,6 +483,7 @@ function extras(g){
       ${g.ratings.rows.map(r => `<tr><td class="l">${esc(r.label)}</td>${r.vals.map((v,i) => cell(v, r.pct[i], r.dig != null ? r.dig : r.label==="Plays per game"?1:3, r.quality)).join("")}</tr>`).join("")}</tbody></table></div>
       <p class="small">Adjusted for the schedule each team has faced and shrunk toward last season early on. ${g.ratings.note ? esc(g.ratings.note) : `Percentiles rank against the league${state.tab==="cfb" ? " (FBS)" : ""}: higher is better on both sides (pass rate and plays per game are style, not good or bad). On defense, a negative number is good (allows less than average).`}</p></div>`);
   }
+  if (g.books) parts.push(booksTable(g));
   if (g.season && (g.season.away.length || g.season.home.length)) {
     const list = (team, rows) => `<div><h4>${esc(team)} · season so far</h4>${rows.length ? rows.map(r => { const res = r.us>r.them?"W":r.us<r.them?"L":"T";
       return `<div class="res"><span><b class="${res==="W"?"w":res==="L"?"l":""}">${res}</b>${r.at?"at":"vs"} ${esc(r.opp)}</span><span class="sc">${r.us}–${r.them}</span></div>`; }).join("") : `<p class="small">No games yet.</p>`}</div>`;
@@ -843,6 +864,53 @@ function labPage(){
     </tbody></table></div>`;
 }
 function recordPage(){ return MODE === "lab" ? labPage() + `<h2>Live record</h2>` + liveRecordPage().replace(/<div class="head">[\s\S]*?<\/p>/, "") : liveRecordPage(); }
+/* ---------- best price across books and prediction markets (display only) ---------- */
+function bestTxt(g, m, withSide){
+  const b = g.books && g.books[m]; if (!b) return "";
+  const o = b.best, ln = o.line == null ? "" : m === "Total" ? `${withSide ? b.side + " " : ""}${o.line}` : `${withSide ? abbrOf(g, b.side) + " " : ""}${o.line > 0 ? "+" : o.line < 0 ? "−" : ""}${o.line === 0 ? "PK" : n1(Math.abs(o.line))}`;
+  return `${esc(o.book)} ${ln} ${odds(o.price)}`.replace(/\s+/g, " ").trim();
+}
+function booksTable(g){
+  const M = ["Spread","Total","Moneyline"].filter(m => g.books && g.books[m]); if (!M.length) return "";
+  const ln = (m, o) => o.line == null ? "" : m === "Total" ? o.line : `${o.line > 0 ? "+" : o.line < 0 ? "−" : ""}${o.line === 0 ? "PK" : n1(Math.abs(o.line))}`;
+  return `<div><h4>Best prices · sportsbooks and prediction markets</h4>${M.map(m => { const b = g.books[m];
+    return `<div class="tablewrap"><table class="t"><thead><tr><th class="l">${esc(m)}: ${esc(m === "Total" ? b.side : abbrOf(g, b.side))}</th><th>Line</th><th>Price</th></tr></thead><tbody>${b.offers.slice(0, 6).map((o, i) => `<tr><td class="l${i === 0 ? " bestp" : ""}">${esc(o.book)}${i === 0 ? " · best" : ""}</td><td>${ln(m, o)}</td><td>${odds(o.price)}</td></tr>`).join("")}</tbody></table></div>`; }).join("")}
+    <p class="small">For the side the model takes. Prediction-market prices include their fees. Spreads and totals at different numbers are compared at fair value against the market consensus. Picks are still posted and graded at DraftKings' first number.</p></div>`;
+}
+function homePage(){
+  const SP = [["nfl","NFL"],["cfb","College football"],["nba","NBA"],["nhl","NHL"],["cbb","College basketball"]];
+  const leanOnly = {nhl: 1, cbb: 1};
+  const all = DATA.picks || [];
+  const T = trackerSummary(all.filter(p => p.play));
+  const g4 = new Map();
+  SP.forEach(([k]) => ((DATA[k] || {}).board || []).forEach(g => g4.set(k + ":" + g.id, g)));
+  const now = Date.now();
+  const openP = all.filter(p => p.play && p.result === "pending" && g4.has(p.sport + ":" + p.game_id) && new Date(g4.get(p.sport + ":" + p.game_id).kickoff).getTime() > now)
+    .sort((a, b) => new Date(g4.get(a.sport + ":" + a.game_id).kickoff) - new Date(g4.get(b.sport + ":" + b.game_id).kickoff));
+  const when = g => g.tbd ? new Date(g.kickoff).toLocaleDateString(undefined,{weekday:"short",timeZone:"America/New_York"}) + " TBA"
+    : new Date(g.kickoff).toLocaleString(undefined,{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit",timeZone:tz});
+  const u = x => `${x.units>0?"+":x.units<0?"−":""}${Math.abs(x.units).toFixed(1)}u`;
+  const rows = openP.map(p => { const g = g4.get(p.sport + ":" + p.game_id), t = timingOf(g, p.market), bt = bestTxt(g, p.market, false);
+    return `<button class="hrow" data-jump="${esc(g.id)}" data-sport="${esc(p.sport)}"><span class="sp">${esc(p.sport.toUpperCase())}</span>
+      <span class="pk"><b>${esc(p.pick)}${p.market === "Moneyline" ? " ML" : ""}</b><div class="m">${esc(g.away)} at ${esc(g.home)} · ${esc(when(g))}${t ? ` · <span class="tm ${esc(t.tag)}">${esc(t.label)}</span>` : ""}</div></span>
+      <span class="rt">${p.units}u${bt ? `<span class="bp">Best: ${bt}</span>` : ""}</span></button>`; }).join("");
+  const cards = SP.map(([k, label]) => { const S = DATA[k]; const P = all.filter(p => p.sport === k), t = trackerSummary(P.filter(p => p.play));
+    const n = S && S.board ? S.board.length : 0, np = S && S.board ? S.board.filter(anyPlay).length : 0;
+    return `<button class="hsport" data-go="${k}"><div class="t">${esc(label)}</div><div class="w">${S && S.board ? esc(S.week) : "Coming soon"}</div>
+      <div class="n">${n} game${n === 1 ? "" : "s"}${leanOnly[k] ? "" : ` · ${np} play${np === 1 ? "" : "s"}`}</div>
+      <div class="n">${leanOnly[k] ? `Leans ${trackerSummary(P).W}-${trackerSummary(P).L}` : `Plays ${t.W}-${t.L}${t.Pu ? "-" + t.Pu : ""} ${t.done.length ? u(t) : ""}`}</div>
+      ${leanOnly[k] ? `<div class="lean">Leans only</div>` : ""}</button>`; }).join("");
+  const today = new Date().toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"});
+  return `<div class="head"><div><div class="eyebrow">${esc(today)}</div><h1>Gap Board</h1></div></div>
+    <p class="lede">A projected score for every game, next to the betting line. A play is posted only when the model's edge clears the cost of the bet; everything else is a lean. New here? Start with <a href="#how" data-go="how">How it works</a>.</p>
+    <div class="summary"><div><div class="k">Season record · plays</div><div class="v">${T.W}-${T.L}${T.Pu?"-"+T.Pu:""}</div><div class="s">${T.done.length ? `${(T.W/Math.max(T.W+T.L,1)*100).toFixed(1)}% of graded plays` : "nothing graded yet"}</div></div>
+      <div><div class="k">Units</div><div class="v ${T.units>0?"pos":T.units<0?"neg":""}">${T.units>0?"+":""}${T.units.toFixed(1)}u</div><div class="s">${T.risk ? `${(T.units/T.risk*100).toFixed(1)}% return on ${T.risk}u risked` : "1 to 3 units per play"}</div></div>
+      <div><div class="k">Open plays</div><div class="v">${openP.length}</div><div class="s">across every sport</div></div></div>
+    <h2>Open plays</h2>
+    ${openP.length ? `<div class="hplays">${rows}</div>` : `<p class="note">No open plays right now. New picks post Monday morning for football and daily for basketball and hockey.</p>`}
+    <h2>Sports</h2><div class="hsports">${cards}</div>
+    <p class="note" style="margin-top:22px"><a href="#record" data-go="record">Full record</a> · <a href="#how" data-go="how">How it works</a></p>`;
+}
 function howPage(){
   if (MODE !== "lab") return `<div class="head"><div><div class="eyebrow">About</div><h1>How it works</h1></div></div>
     <p class="lede">Gap Board projects a score for every NFL, college football, NBA, NHL and college basketball game, compares it with the betting line, and flags a bet only when the edge is big enough to beat the bookmaker's cut.</p>
@@ -871,8 +939,9 @@ function howPage(){
 function render(){
   $("#tabs").innerHTML = TABS.map(([k,l]) => `<button role="tab" aria-selected="${state.tab===k}" data-k="${k}">${l}</button>`).join("");
   $(".search").hidden = !["nfl","cfb","cbb","nba","nhl"].includes(state.tab);
-  $("#main").innerHTML = state.tab === "record" ? recordPage() : state.tab === "how" ? howPage() : state.tab === "top25" ? top25Page() : board(state.tab);
+  $("#main").innerHTML = state.tab === "home" ? homePage() : state.tab === "record" ? recordPage() : state.tab === "how" ? howPage() : state.tab === "top25" ? top25Page() : board(state.tab);
 }
+$("#brand").addEventListener("click", e => { e.preventDefault(); state.tab = "home"; history.replaceState(null,"","#home"); render(); window.scrollTo({top:0}); });
 $("#tabs").addEventListener("click", e => { const k = e.target.closest("button")?.dataset.k; if(!k) return; state.tab = k; history.replaceState(null,"","#"+k); render(); window.scrollTo({top:0}); });
 $("#q").addEventListener("input", e => { state.q = e.target.value; render(); });
 $("#main").addEventListener("click", e => {
@@ -884,7 +953,10 @@ $("#main").addEventListener("click", e => {
     if (g) { const on = isFav(g); [g.home, g.away].forEach(t => on ? favs.delete(t) : favs.add(t)); saveFavs(); render(); } return; }
   const tk = e.target.closest("[data-track]"); if (tk) { state.track = tk.dataset.track; render(); return; }
   const rm = e.target.closest("[data-rm]"); if (rm) { const [s,m] = rm.dataset.rm.split(":"); state.rmkt[s] = m; render(); return; }
+  const go = e.target.closest("[data-go]");
+  if (go) { state.tab = go.dataset.go; state.show = "all"; history.replaceState(null,"","#"+state.tab); render(); window.scrollTo({top:0}); return; }
   const j = e.target.closest("[data-jump]");
+  if (j && j.dataset.sport) { state.tab = j.dataset.sport; history.replaceState(null,"","#"+state.tab); }
   if (j) { const id = j.dataset.jump; state.show = "all"; state.q = ""; $("#q").value = ""; open.add(id); render();
     const el = document.getElementById("g-"+id); if (el) el.scrollIntoView({block:"center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"}); return; }
   const l = e.target.closest("[data-toggle]");
