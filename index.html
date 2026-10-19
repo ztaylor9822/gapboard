@@ -677,8 +677,7 @@ async function drawPlayCard(g, p){
   txt("POSTED", 72, SY + 78, `600 22px ${MONO}`, FAINT); txt(`${posted} · locked`, 72, SY + 120, `600 34px ${BODY}`, INK);
   if (graded && p.final) { const f = String(p.final).split("-"); txt("FINAL", W / 2 - 20, SY + 78, `600 22px ${MONO}`, FAINT); txt(`${A(g)} ${f[0]} · ${H(g)} ${f[1]}`, W / 2 - 20, SY + 120, `600 32px ${MONO}`, INK); }
   else { txt("PRICE", W / 2 - 20, SY + 78, `600 22px ${MONO}`, FAINT); txt(`${p.price > 0 ? "+" : "−"}${Math.abs(p.price)}`, W / 2 - 20, SY + 120, `600 34px ${MONO}`, INK); }
-  txt("gapboard.pages.dev", 72, HH - 70, `600 28px ${MONO}`, MUTED);
-  txt("Model output, not betting advice", W - 72, HH - 70, `500 22px ${BODY}`, FAINT, "right");
+  txt("Model output, not betting advice", 72, HH - 70, `500 22px ${BODY}`, FAINT);
   const blob = await new Promise(r => c.toBlob(r, "image/png"));
   return new File([blob], `gapboard-${p.sport || state.tab}-${g.id}-${p.market.toLowerCase()}.png`, {type: "image/png"});
 }
