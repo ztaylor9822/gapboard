@@ -293,6 +293,13 @@ details.more summary{cursor:pointer;font-size:14px;font-weight:500}
 .hrow .rt{text-align:right;font:500 13px var(--mono)}
 .hrow .rt .bp{display:block;font:400 12px var(--body);color:var(--play)}
 .bestp{color:var(--play)}
+.sharepanel{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px}
+.sp-box{background:var(--card);border:1px solid var(--rule);border-radius:12px;padding:16px;max-width:420px;width:100%;max-height:90vh;overflow:auto}
+.sp-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.sp-x{border:0;background:none;font-size:24px;line-height:1;cursor:pointer;color:var(--muted)}
+.sp-item img{width:100%;border-radius:8px;display:block}
+.sp-btns{display:flex;gap:8px;margin:10px 0 4px}
+.sp-btns .sharebtn{margin-top:0;text-decoration:none;text-align:center;flex:1}
 .hrow .tm.now{color:var(--play);font-weight:600} .hrow .tm.caution{color:var(--accent);font-weight:600} .hrow .tm.gone,.hrow .tm.hold{color:var(--muted)}
 .wrap a{color:var(--accent);text-underline-offset:2px}
 footer{margin-top:44px;font-size:12px;color:var(--muted);border-top:1px solid var(--rule);padding-top:12px}
@@ -565,8 +572,33 @@ async function sharePlay(g, sport, only){
   try { await Promise.all([document.fonts.load("800 100px 'Big Shoulders Display'"), document.fonts.load("600 30px 'IBM Plex Sans'"), document.fonts.load("500 30px 'IBM Plex Mono'")]); } catch(e){}
   const files = [];
   for (const p of plays) files.push(await drawPlayCard(g, p));
-  if (navigator.canShare && navigator.canShare({files})) { try { await navigator.share({files, title: "Gap Board play"}); return; } catch(e){ if (e.name === "AbortError") return; } }
-  for (const f of files) { const a = document.createElement("a"); a.href = URL.createObjectURL(f); a.download = f.name; document.body.appendChild(a); a.click(); a.remove(); }
+  // phones and tablets: the native share sheet; computers: our own panel (copy image / download)
+  const touch = matchMedia("(pointer: coarse)").matches;
+  if (touch && navigator.canShare && navigator.canShare({files})) { try { await navigator.share({files, title: "Gap Board play"}); return; } catch(e){ if (e.name === "AbortError") return; } }
+  shareMenu(files);
+}
+function shareMenu(files){
+  document.querySelector(".sharepanel")?.remove();
+  const canCopy = !!(navigator.clipboard && window.ClipboardItem);
+  const urls = files.map(f => URL.createObjectURL(f));
+  const el = document.createElement("div");
+  el.className = "sharepanel"; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", "Share play");
+  el.innerHTML = `<div class="sp-box"><div class="sp-head"><b>Share play</b><button class="sp-x" aria-label="Close">×</button></div>
+    ${files.map((f, i) => `<div class="sp-item"><img src="${urls[i]}" alt="Play card"><div class="sp-btns">
+      ${canCopy ? `<button class="sharebtn sp-copy" data-i="${i}">Copy image</button>` : ""}
+      <a class="sharebtn sp-dl" href="${urls[i]}" download="${esc(f.name)}">Download</a></div></div>`).join("")}
+    <p class="sp-msg small">${canCopy ? "Copy, then paste it into Discord, a text or a post." : "Download the image, then attach it anywhere."}</p></div>`;
+  document.body.appendChild(el);
+  const close = () => { el.remove(); urls.forEach(u => URL.revokeObjectURL(u)); document.removeEventListener("keydown", onKey); };
+  const onKey = e => { if (e.key === "Escape") close(); };
+  document.addEventListener("keydown", onKey);
+  el.addEventListener("click", async e => {
+    if (e.target === el || e.target.closest(".sp-x")) return close();
+    const c = e.target.closest(".sp-copy");
+    if (c) { try { await navigator.clipboard.write([new ClipboardItem({"image/png": files[+c.dataset.i]})]); c.textContent = "Copied ✓"; }
+      catch(err){ c.textContent = "Copy blocked: use Download"; } }
+  });
+  el.querySelector(".sp-x").focus();
 }
 async function drawPlayCard(g, p){
   const W = 1080, HH = 1350, c = document.createElement("canvas"); c.width = W; c.height = HH;
