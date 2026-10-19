@@ -279,9 +279,14 @@ details.more summary{cursor:pointer;font-size:14px;font-weight:500}
 .hsport .n{font:500 13px var(--mono);margin-top:8px}
 .hsport .lean{font-size:11px;color:var(--faint);margin-top:2px}
 .hplays{background:var(--card);border:1px solid var(--rule);border-radius:10px;overflow:hidden;margin-top:12px}
-.hrow{display:grid;grid-template-columns:3.4rem minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--rule);cursor:pointer;width:100%;background:none;border-left:0;border-right:0;border-top:0;text-align:left;color:var(--ink);font:inherit}
+.hrow{display:flex;align-items:center;gap:10px;padding:0 14px 0 0;border-bottom:1px solid var(--rule)}
+.hjump{flex:1;min-width:0;display:grid;grid-template-columns:3.4rem minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:10px 0 10px 14px;cursor:pointer;background:none;border:0;text-align:left;color:var(--ink);font:inherit}
+.hshare{flex:0 0 auto;margin-top:0;padding:6px 10px}
+.hrow .bpm{display:none;color:var(--play)}
+@media (max-width:640px){.hjump{grid-template-columns:2.2rem minmax(0,1fr) auto;gap:2px 8px;padding-left:10px}.hrow{padding-right:10px;gap:6px}.hrow .pk b{font-size:14px}
+  .hrow .rt .bp{display:none !important}.hrow .bpm{display:inline !important}}
 .hrow:last-child{border-bottom:0}
-.hrow:hover{background:var(--sunk)}
+.hjump:hover{background:var(--sunk)}
 .hrow .sp{font:600 11px var(--body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .hrow .pk b{font-size:15px}
 .hrow .pk .m{font-size:12px;color:var(--muted)}
@@ -553,8 +558,9 @@ function gameRow(g){
 }
 
 /* share card: one image per posted play, styled like a bet slip; opens the phone's share sheet */
-async function sharePlay(g){
-  const plays = ledgerFor(g).filter(p => p.play);
+async function sharePlay(g, sport, only){
+  const sp = sport || state.tab;
+  const plays = only ? [only] : (DATA.picks || []).filter(p => String(p.game_id) === String(g.id) && p.sport === sp && p.play);
   if (!plays.length) return;
   try { await Promise.all([document.fonts.load("800 100px 'Big Shoulders Display'"), document.fonts.load("600 30px 'IBM Plex Sans'"), document.fonts.load("500 30px 'IBM Plex Mono'")]); } catch(e){}
   const files = [];
@@ -580,7 +586,7 @@ async function drawPlayCard(g, p){
   // header: wordmark + sport/date chip
   x.font = `800 60px ${DISP}`; x.fillStyle = INK; x.fillText("GAP", 72, 118); let gx = 72 + x.measureText("GAP").width;
   x.fillStyle = ORANGE; x.fillText("/", gx, 118); gx += x.measureText("/").width; x.fillStyle = INK; x.fillText("BOARD", gx, 118);
-  const sport = {nfl: "NFL", cfb: "COLLEGE FOOTBALL", nba: "NBA", nhl: "NHL", cbb: "COLLEGE BASKETBALL"}[state.tab] || "";
+  const sport = {nfl: "NFL", cfb: "COLLEGE FOOTBALL", nba: "NBA", nhl: "NHL", cbb: "COLLEGE BASKETBALL"}[p.sport || state.tab] || "";
   const day = new Date(g.kickoff).toLocaleDateString(undefined, {weekday: "short", month: "short", day: "numeric", timeZone: g.tbd ? "America/New_York" : tz}).toUpperCase();
   const chip = `${sport} · ${day}`; x.font = `600 24px ${MONO}`; const cw = x.measureText(chip).width + 44;
   rr(W - 72 - cw, 76, cw, 52, 26); x.strokeStyle = LINE; x.lineWidth = 2; x.stroke(); txt(chip, W - 72 - cw / 2, 111, `600 24px ${MONO}`, MUTED, "center");
@@ -615,6 +621,11 @@ async function drawPlayCard(g, p){
   if (p.market === "Moneyline" && g.ml) { rows = [["Model", g.ml.p, GREEN], ["Market", g.ml.mkt_p, FAINT]]; note = `Win chance · expected return +${(g.ml.ev * 100).toFixed(1)}%`; }
   else if (p.market === "Spread" && g.pick) { rows = [["Cover", g.pick.p, GREEN], ["Break-even", 0.5238, FAINT]]; note = `Model ${fullLine(g.model_margin, g)} · Vegas ${fullLine(g.line, g)}`; }
   else if (p.market === "Total" && g.ou) { rows = [["Hit", g.ou.p, GREEN], ["Break-even", 0.5238, FAINT]]; note = `Model total ${n1(g.model_total)} · line ${g.total_line}`; }
+  else if (p.chance != null) {   // game no longer on the board: use what was posted
+    const be = p.price > 0 ? 100 / (p.price + 100) : -p.price / (-p.price + 100);
+    rows = [[p.market === "Moneyline" ? "Model win chance" : "Model chance", +p.chance, GREEN], ["Price implies", be, FAINT]];
+    note = p.market === "Moneyline" && p.ev != null ? `Expected return at the posted price +${(p.ev * 100).toFixed(1)}%` : `Posted at ${p.price > 0 ? "+" : "−"}${Math.abs(p.price)}`;
+  }
   if (rows) {
     let by = PY + 400; const bx = 96, bw = W - 192 - 150;
     for (const [lab, v, col] of rows) {
@@ -637,7 +648,7 @@ async function drawPlayCard(g, p){
   txt("gapboard.pages.dev", 72, HH - 70, `600 28px ${MONO}`, MUTED);
   txt("Model output, not betting advice", W - 72, HH - 70, `500 22px ${BODY}`, FAINT, "right");
   const blob = await new Promise(r => c.toBlob(r, "image/png"));
-  return new File([blob], `gapboard-${state.tab}-${g.id}-${p.market.toLowerCase()}.png`, {type: "image/png"});
+  return new File([blob], `gapboard-${p.sport || state.tab}-${g.id}-${p.market.toLowerCase()}.png`, {type: "image/png"});
 }
 function playStrip(key){
   const S = DATA[key];
@@ -894,9 +905,9 @@ function homePage(){
   const u = x => `${x.units>0?"+":x.units<0?"−":""}${Math.abs(x.units).toFixed(1)}u`;
   const rows = openP.map(p => { const g = gameOf(p), t = timingOf(g, p.market), bt = bestTxt(g, p.market, false);
     const live = new Date(g.kickoff).getTime() <= now;
-    return `<button class="hrow" ${g.offBoard ? `data-go="record"` : `data-jump="${esc(g.id)}" data-sport="${esc(p.sport)}"`}><span class="sp">${esc(p.sport.toUpperCase())}</span>
-      <span class="pk"><b>${esc(p.pick)}${p.market === "Moneyline" ? " ML" : ""}</b><div class="m">${esc(g.away)} at ${esc(g.home)} · ${live ? "in progress or awaiting result" : esc(when(g))}${t && !live ? ` · <span class="tm ${esc(t.tag)}">${esc(t.label)}</span>` : ""}</div></span>
-      <span class="rt">${p.units}u${bt ? `<span class="bp">Best: ${bt}</span>` : ""}</span></button>`; }).join("");
+    return `<div class="hrow"><button class="hjump" ${g.offBoard ? `data-go="record"` : `data-jump="${esc(g.id)}" data-sport="${esc(p.sport)}"`}><span class="sp">${esc(p.sport.toUpperCase())}</span>
+      <span class="pk"><b>${esc(p.pick)}${p.market === "Moneyline" ? " ML" : ""}</b><div class="m">${esc(g.away)} at ${esc(g.home)} · ${live ? "in progress or awaiting result" : esc(when(g))}${bt ? `<span class="bpm"> · Best: ${bt}</span>` : ""}${t && !live ? ` · <span class="tm ${esc(t.tag)}">${esc(t.label)}</span>` : ""}</div></span>
+      <span class="rt">${p.units}u${bt ? `<span class="bp">Best: ${bt}</span>` : ""}</span></button><button class="sharebtn hshare" data-sharepick="${esc(p.sport)}|${esc(p.game_id)}|${esc(p.market)}" aria-label="Share this play">Share</button></div>`; }).join("");
   const cards = SP.map(([k, label]) => { const S = DATA[k]; const P = all.filter(p => p.sport === k), t = trackerSummary(P.filter(p => p.play));
     const n = S && S.board ? S.board.length : 0, np = S && S.board ? S.board.filter(anyPlay).length : 0;
     return `<button class="hsport" data-go="${k}"><div class="t">${esc(label)}</div><div class="w">${S && S.board ? esc(S.week) : "Coming soon"}</div>
@@ -950,6 +961,15 @@ $("#tabs").addEventListener("click", e => { const k = e.target.closest("button")
 $("#q").addEventListener("input", e => { state.q = e.target.value; render(); });
 $("#main").addEventListener("click", e => {
   const c = e.target.closest("[data-show]"); if (c) { state.show = c.dataset.show; save(); render(); return; }
+  const spk = e.target.closest("[data-sharepick]");
+  if (spk) { const [sp, gid, mk] = spk.dataset.sharepick.split("|");
+    const p = (DATA.picks || []).find(x => x.sport === sp && String(x.game_id) === gid && x.market === mk && x.play);
+    if (!p) return;
+    let g = ((DATA[sp] || {}).board || []).find(x => String(x.id) === gid);
+    if (!g) { const m = sp === "nfl" ? String(gid).match(/_([A-Z]+)_([A-Z]+)$/) : null;
+      const ab = n => String(n).split(" ")[0].slice(0, 4).toUpperCase();
+      g = {id: gid, away: p.away, home: p.home, kickoff: p.kickoff, away_abbr: m ? m[1] : ab(p.away), home_abbr: m ? m[2] : ab(p.home)}; }
+    sharePlay(g, sp, p); return; }
   const sh = e.target.closest("[data-share]");
   if (sh) { const g = (DATA[state.tab]?.board || []).find(x => String(x.id) === sh.dataset.share); if (g) sharePlay(g); return; }
   const fv = e.target.closest("[data-fav]");
